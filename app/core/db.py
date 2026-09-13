@@ -103,6 +103,30 @@ KAMITSUBAKI_X_SOURCES: tuple[tuple[str, str], ...] = (
 )
 KAMITSUBAKI_SYSTEM_USER_ID = "system:kamitsubaki"
 
+RIOT_MUSIC_ARTIST_SOURCES: tuple[tuple[str, str, str], ...] = (
+    ("IORI MATSUNAGA", "iori_m_RIOT", "https://www.youtube.com/channel/UC--zuEfONeFXPvLqX0Kvbuw"),
+    ("ANKO ASAKURA", "anko_a_RIOT", "https://www.youtube.com/@ANKOASAKURA"),
+    ("MIONA SUMERAGI", "miona_s_RIOT", "https://www.youtube.com/channel/UCoAL7HKxjpPGuA1G4bdfHTQ"),
+    ("CHISE ITSUKI", "chise_i_BW", "https://www.youtube.com/@CHISEITSUKI"),
+    ("SHIRASE SHIRAKAWA", "shirase_s_BW", "https://www.youtube.com/@SHIRASESHIRAKAWA"),
+    ("RANZE TOKINIWA", "ranze_t_BW", "https://www.youtube.com/channel/UCw9_unaq1z9CJXeFOZm-MfQ"),
+    ("MINAMI IZUMI", "minami_i_MGS", "https://www.youtube.com/@izumiminami"),
+    ("SHUNA", "shuna_MGS", "https://www.youtube.com/@shuna_mgs"),
+    ("MEMENTOVANITAS", "memento_v_MGS", "https://www.youtube.com/@MEMENTOVANITAS"),
+    ("DENSHINBASHIRA-CHAN", "denchan_MGS", "https://www.youtube.com/@DENSHINBASHIRA-CHAN"),
+    ("LECIEL MIYAJIMA", "leciel_m_MGS", "https://www.youtube.com/@LECIELMIYAJIMA"),
+    ("KUGURU KASAYA", "kuguru_k_MGS", "https://www.youtube.com/@KUGURUKASAYA"),
+)
+RIOT_MUSIC_X_SOURCES: tuple[tuple[str, str], ...] = tuple(
+    (artist_name, x_username)
+    for artist_name, x_username, _youtube_url in RIOT_MUSIC_ARTIST_SOURCES
+)
+RIOT_MUSIC_YOUTUBE_CHANNELS: tuple[tuple[str, str], ...] = tuple(
+    (artist_name, youtube_url)
+    for artist_name, _x_username, youtube_url in RIOT_MUSIC_ARTIST_SOURCES
+)
+RIOT_MUSIC_SYSTEM_USER_ID = "system:riotmusic"
+
 
 def get_connection() -> Connection:
     """환경변수 DATABASE_URL로 PostgreSQL 연결을 만들고 row를 dict 형태로 반환합니다."""
@@ -282,7 +306,7 @@ def init_db() -> None:
         conn.execute(
             """
             INSERT INTO artist_agencies (name)
-            VALUES ('RK Music'), ('KAMITSUBAKI STUDIO')
+            VALUES ('RK Music'), ('KAMITSUBAKI STUDIO'), ('RIOT MUSIC')
             ON CONFLICT (name) DO NOTHING
             """
         )
@@ -346,6 +370,10 @@ def init_db() -> None:
         conn.execute(
             "UPDATE artists SET agency = 'KAMITSUBAKI STUDIO' WHERE discord_user_id = %s",
             (KAMITSUBAKI_SYSTEM_USER_ID,),
+        )
+        conn.execute(
+            "UPDATE artists SET agency = 'RIOT MUSIC' WHERE discord_user_id = %s",
+            (RIOT_MUSIC_SYSTEM_USER_ID,),
         )
         conn.execute(
             """
@@ -633,6 +661,13 @@ def init_db() -> None:
             sources=KAMITSUBAKI_X_SOURCES,
             note="Official KAMITSUBAKI STUDIO X source (managed preset)",
             agency="KAMITSUBAKI STUDIO",
+        )
+        _seed_artist_x_sources(
+            conn,
+            owner_id=RIOT_MUSIC_SYSTEM_USER_ID,
+            sources=RIOT_MUSIC_X_SOURCES,
+            note="Official RIOT MUSIC X source (managed preset)",
+            agency="RIOT MUSIC",
         )
         _seed_artist_x_sources(
             conn,

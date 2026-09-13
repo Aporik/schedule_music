@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from itertools import zip_longest
 import logging
 from datetime import UTC, datetime
@@ -43,6 +44,8 @@ from app.integrations.youtube_live_archive import (
     search_youtube_song_performances,
 )
 from app.integrations.youtube_channel_monitor import (
+    backfill_riot_music_youtube_channels,
+    create_riot_music_youtube_channel_monitors,
     create_youtube_channel_monitor,
     delete_youtube_channel_monitor,
     list_youtube_channel_monitors,
@@ -66,6 +69,7 @@ DISCORD_MESSAGE_MAX_CHARS = 1900
 LYRICS_EXPORT_DIR = Path("exports")
 SONG_EXPORT_DIR = Path("exports") / "songs"
 LyricsSourceMode = Literal["description", "comment", "caption", "audio", "file"]
+youtube_backfill_tasks: set[asyncio.Task] = set()
 
 
 class _NoopLyricsAiClient:
@@ -1362,6 +1366,65 @@ async def youtube_live_add(
     await interaction.followup.send(
         f"#{archive_id} · {date_text} · {len(setlist)}곡을 저장했습니다.\n"
         f"/youtube_live_show archive_id:{archive_id} 로 확인할 수 있습니다.",
+        ephemeral=True,
+    )
+
+
+@bot.tree.command(
+    name="youtube_riotmusic_add_all",
+    description="RIOT MUSIC official artist channels are added to your YouTube monitors.",
+)
+async def youtube_riotmusic_add_all(interaction: discord.Interaction) -> None:
+    """Register the current RIOT MUSIC official artist channels for this user."""
+    await interaction.response.defer(ephemeral=True)
+    try:
+        result = await create_riot_music_youtube_channel_monitors(
+            discord_user_id=str(interaction.user.id),
+        )
+    except RuntimeError as exc:
+        await interaction.followup.send(str(exc), ephemeral=True)
+        return
+
+    lines = [
+        f"RIOT MUSIC YouTube monitors registered: {result['registered']}/{result['requested']}",
+        "Future checks will run through the existing scheduler.",
+        "Run /youtube_riotmusic_backfill_all to collect historical utawaku archives.",
+    ]
+    if result["failed"]:
+        lines.append("Failed:")
+        lines.extend(
+            f"{item['artist_name']}: {item['error']}"
+            for item in result["failed"][:8]
+        )
+        if len(result["failed"]) > 8:
+            lines.append(f"...and {len(result['failed']) - 8} more")
+    await interaction.followup.send("\n".join(lines), ephemeral=True)
+
+
+@bot.tree.command(
+    name="youtube_riotmusic_backfill_all",
+    description="Start a historical RIOT MUSIC utawaku archive backfill.",
+)
+@app_commands.describe(
+    max_videos_per_channel="Optional cap per channel. Leave empty to scan all matching uploads.",
+)
+async def youtube_riotmusic_backfill_all(
+    interaction: discord.Interaction,
+    max_videos_per_channel: app_commands.Range[int, 1, 500] | None = None,
+) -> None:
+    """Start historical RIOT MUSIC utawaku collection in the background."""
+    await interaction.response.defer(ephemeral=True)
+    task = asyncio.create_task(
+        backfill_riot_music_youtube_channels(
+            max_videos_per_channel=max_videos_per_channel,
+            concurrency=3,
+        )
+    )
+    youtube_backfill_tasks.add(task)
+    task.add_done_callback(youtube_backfill_tasks.discard)
+    await interaction.followup.send(
+        "RIOT MUSIC historical utawaku backfill started. "
+        "Saved archives will appear in /youtube_live_list as each channel finishes.",
         ephemeral=True,
     )
 

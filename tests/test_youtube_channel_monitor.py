@@ -6,6 +6,7 @@ from app.integrations import youtube_channel_monitor as monitor
 
 from app.integrations.youtube_channel_monitor import (
     _channel_locator,
+    _is_singing_stream_title,
     _performer_for_singing_stream,
 )
 
@@ -55,6 +56,23 @@ def test_channel_locator_supports_handle_and_channel_id_urls() -> None:
 def test_channel_locator_rejects_video_and_custom_urls() -> None:
     with pytest.raises(ValueError):
         _channel_locator("https://www.youtube.com/watch?v=abcdefghijk")
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "【歌枠】RIOT MUSIC singing relay",
+        "KARAOKE STREAM - archive",
+        "弾き語り live",
+        "Singing Stream with chat",
+    ],
+)
+def test_singing_stream_title_keywords_match(title: str) -> None:
+    assert _is_singing_stream_title(title)
+
+
+def test_singing_stream_title_keywords_reject_non_music_upload() -> None:
+    assert not _is_singing_stream_title("weekly schedule and chat announcement")
 
 
 def test_vesperbell_singing_streams_are_attributed_by_member_credit() -> None:

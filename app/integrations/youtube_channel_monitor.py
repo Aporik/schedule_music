@@ -10,7 +10,7 @@ from urllib.parse import urlparse
 import httpx
 
 from app.core.config import settings
-from app.core.db import get_connection
+from app.core.db import RIOT_MUSIC_YOUTUBE_CHANNELS, get_connection
 from app.integrations.youtube_context import YOUTUBE_API_BASE_URL
 from app.integrations.youtube_live_archive import add_youtube_live_url
 
@@ -24,6 +24,25 @@ KMNZ_ARTIST_NAME = "KMNZ"
 KMNZ_LITA_ARTIST_NAME = "KMNZ LITA"
 KMNZ_NERO_ARTIST_NAME = "KMNZ NERO"
 KMNZ_TINA_ARTIST_NAME = "KMNZ TINA"
+SINGING_STREAM_TITLE_KEYWORDS = (
+    "\u6b4c\u67a0",
+    "\u6b4c\u914d\u4fe1",
+    "\u30ab\u30e9\u30aa\u30b1",
+    "\u5f3e\u304d\u8a9e\u308a",
+    "\u3046\u305f\u308f\u304f",
+    "singing",
+    "singing stream",
+    "karaoke",
+    "karaoke stream",
+    "acoustic",
+    "閭뚧옞",
+    "?먩춯?졼",
+)
+
+
+def _is_singing_stream_title(title: str) -> bool:
+    normalized = title.casefold()
+    return any(keyword.casefold() in normalized for keyword in SINGING_STREAM_TITLE_KEYWORDS)
 
 
 def _channel_locator(channel_url: str) -> tuple[str, str]:
@@ -153,7 +172,11 @@ async def poll_youtube_channel_monitors(
     return result
 
 
-async def _fetch_recent_singing_streams(uploads_playlist_id: str) -> list[dict[str, Any]]:
+async def _fetch_recent_singing_streams(
+    uploads_playlist_id: str,
+    *,
+    max_videos: int | None = None,
+) -> list[dict[str, Any]]:
     """Return completed live archives whose title identifies them as an utawaku.
 
     The uploads playlist is paginated at 50 items by YouTube.  A channel
@@ -181,8 +204,11 @@ async def _fetch_recent_singing_streams(uploads_playlist_id: str) -> list[dict[s
                     "title": (item.get("snippet") or {}).get("title") or "",
                 }
                 for item in payload.get("items") or []
-                if "歌枠" in ((item.get("snippet") or {}).get("title") or "")
+                if _is_singing_stream_title((item.get("snippet") or {}).get("title") or "")
             )
+            if max_videos is not None and len(candidates) >= max_videos:
+                candidates = candidates[:max_videos]
+                break
             page_token = payload.get("nextPageToken")
             if not page_token:
                 break
@@ -261,7 +287,10 @@ async def backfill_youtube_channel(
     is safe to rerun after comments are updated or a collection run fails.
     """
     channel = await resolve_youtube_channel(channel_url)
-    videos = await _fetch_recent_singing_streams(channel["uploads_playlist_id"])
+    videos = await _fetch_recent_singing_streams(
+        channel["uploads_playlist_id"],
+        max_videos=max_videos,
+    )
     with get_connection() as conn:
         existing_ids = {
             row["youtube_video_id"]
@@ -272,8 +301,6 @@ async def backfill_youtube_channel(
             ).fetchall()
         }
     videos = [video for video in videos if video["youtube_video_id"] not in existing_ids]
-    if max_videos is not None:
-        videos = videos[:max(1, max_videos)]
     async def store(video: dict[str, Any]) -> tuple[bool, bool]:
         try:
             archive_id = await add_youtube_live_url(
@@ -308,6 +335,63 @@ async def backfill_youtube_channel(
         "failed": sum(not saved for saved, _ in outcomes),
     }
     return result
+
+
+async def create_riot_music_youtube_channel_monitors(
+    *, discord_user_id: str
+) -> dict[str, Any]:
+    """Register official RIOT MUSIC artist channels for one Discord user."""
+    monitors = []
+    failed: list[dict[str, str]] = []
+    for artist_name, channel_url in RIOT_MUSIC_YOUTUBE_CHANNELS:
+        try:
+            monitors.append(
+                await create_youtube_channel_monitor(
+                    discord_user_id=discord_user_id,
+                    artist_name=artist_name,
+                    channel_url=channel_url,
+                )
+            )
+        except Exception as exc:
+            logger.exception("RIOT MUSIC YouTube monitor seed failed for %s", artist_name)
+            failed.append({"artist_name": artist_name, "error": str(exc)})
+    return {
+        "requested": len(RIOT_MUSIC_YOUTUBE_CHANNELS),
+        "registered": len(monitors),
+        "failed": failed,
+        "monitors": monitors,
+    }
+
+
+async def backfill_riot_music_youtube_channels(
+    *, max_videos_per_channel: int | None = None, concurrency: int = 3
+) -> dict[str, Any]:
+    """Store historical RIOT MUSIC utawaku archives from official channels."""
+    channels: list[dict[str, Any]] = []
+    totals = {
+        "channels_checked": 0,
+        "videos_found": 0,
+        "archives_saved": 0,
+        "setlists_found": 0,
+        "failed": 0,
+    }
+    for artist_name, channel_url in RIOT_MUSIC_YOUTUBE_CHANNELS:
+        try:
+            result = await backfill_youtube_channel(
+                channel_url=channel_url,
+                artist_name=artist_name,
+                max_videos=max_videos_per_channel,
+                concurrency=concurrency,
+            )
+            totals["channels_checked"] += 1
+            for key in ("videos_found", "archives_saved", "setlists_found", "failed"):
+                totals[key] += int(result[key])
+            channels.append({"artist_name": artist_name, **result})
+        except Exception as exc:
+            logger.exception("RIOT MUSIC YouTube backfill failed for %s", artist_name)
+            totals["failed"] += 1
+            channels.append({"artist_name": artist_name, "error": str(exc)})
+    return {**totals, "channels": channels}
 
 
 def _upsert_channel_videos(monitor_id: int, videos: list[dict[str, Any]]) -> None:
