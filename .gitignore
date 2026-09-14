@@ -16,3 +16,12 @@ web/dist/
 web/auto-imports.d.ts
 web/components.d.ts
 api-dev.stderr.log
+
+# Local installers, logs, and temporary build/test artifacts
+*.exe
+*.msi
+*.msix
+*.msixbundle
+*.log
+.tmp/
+pytest-cache-files-*/
