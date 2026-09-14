@@ -14,6 +14,21 @@ function archive(id: number, title: string, korean: string | null = null, artist
 }
 
 describe('full archive statistics', () => {
+  it('excludes broadcast chapters for every artist and both setlist formats', () => {
+    const chapters = ['開始', '1開始 (시작)', '2お知らせ (공지사항)', '3Cパート (C파트)',
+      '4🗓️今週のスケジュール (이번 주 스케줄)', '5🐺 ((・△・))', '雑談', '配信終了', '01. お知らせ', '🗓️来週の予定']
+    const rows = chapters.flatMap((title, index) => {
+      const performance = archive(index, title)
+      performance.artist_name = `Artist ${index}`
+      const fallback = { ...performance, id: index + 100, performances: [], setlist: [{ title, timestamp: '1:00' }] }
+      return [performance, fallback]
+    })
+    expect(buildSongStats(rows, '', 'desc')).toEqual([])
+  })
+  it('keeps song titles containing chapter words and numeric titles', () => {
+    const titles = ['始まりの歌', 'お知らせの歌', 'START DASH', 'The Beginning', 'Cパートの歌', '366日', 'アイドル']
+    expect(buildSongStats(titles.map((title, index) => archive(index, title)), '', 'desc')).toHaveLength(titles.length)
+  })
   it('counts older broadcasts beyond the first hundred before sorting or rendering', () => {
     const rows = Array.from({ length: 123 }, (_, index) => archive(index, 'いきのこり●ぼくら'))
     const stats = buildSongStats(rows, '', 'asc')

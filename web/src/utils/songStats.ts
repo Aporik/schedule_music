@@ -61,10 +61,26 @@ function songStatsKey(title: string): string {
 }
 
 function cleanSongTitle(value: string): string | null {
+  if (isBroadcastChapter(value)) return null
   const title = normalizeSongTitle(value)
-  if (!title || /^start(?:\b|[：:\-])/i.test(title)) return null
+  if (!title) return null
   const withoutIndex = title.replace(/^(?:#\s*)?(?:제\s*)?\d+\s*(?:곡목?|曲目?)?\s*(?:[.．:：\-—)]\s*)+/u, '').trim()
-  return withoutIndex && !/^start(?:\b|[：:\-])/i.test(withoutIndex) ? withoutIndex : null
+  return withoutIndex && !isBroadcastChapter(withoutIndex) ? withoutIndex : null
+}
+
+function isBroadcastChapter(value: string): boolean {
+  if (/^\d+$/u.test(value.normalize('NFKC').trim())) return false
+  const label = value.normalize('NFKC')
+    .replace(/[\u200B-\u200D\uFE0E\uFE0F\uFEFF]/gu, '')
+    .replace(/^(?:\s|\p{P}|\p{S}|\p{N})+/gu, '')
+    .trim()
+  // Emoji, kaomoji, and punctuation alone are not song titles.
+  if (!/[\p{L}\p{N}]/u.test(label)) return true
+  // Match whole chapter labels, allowing a translated label in parentheses.
+  // Do not reject real titles just because they contain words like "start".
+  const chapter = label.replace(/\s*\([^()]*\)\s*$/u, '')
+    .replace(/[\s\p{P}\p{S}]+$/gu, '').trim()
+  return /^(?:(?:配信|放送|歌枠|本編)?\s*(?:開始|終了)|スタート|お知らせ|告知|宣伝|雑談|休憩|待機(?:画面|時間)?|準備中|オープニング|エンディング|[ABC]\s*パート|(?:今週|来週|今月|来月)の(?:予定|スケジュール)|スケジュール|시작|방송\s*(?:시작|종료)|공지(?:사항)?|잡담|휴식|대기(?:화면)?|[ABC씨]\s*파트|(?:이번|다음)\s*(?:주|달)\s*(?:스케줄|일정)|start|stream\s*(?:start|end)|opening|ending|intro|outro|announcements?|schedule|(?:free\s*)?talk|break|waiting)$/iu.test(chapter)
 }
 function addSongStatArtistCandidate(song: SongStat, originalArtist: string | null, originalArtistKo: string | null): void {
   if (!originalArtist) return
