@@ -60,6 +60,17 @@ const performanceFilters = useQuery({ queryKey: ['youtube-performance-filters'],
 const vtubers = computed(() => (artistsQuery.data.value ?? []).filter((artist) =>
   artist.artist_kind === 'vtuber' && artist.show_in_youtube_lives,
 ))
+const agencyNames = computed(() => {
+  const preferredOrder = ['RK Music', 'KAMITSUBAKI STUDIO', 'RIOT MUSIC']
+  const names = new Set([
+    ...(agenciesQuery.data.value ?? []).map((agency) => agency.name),
+    ...vtubers.value.map((artist) => artist.agency).filter((name): name is string => Boolean(name)),
+  ])
+  return [
+    ...preferredOrder.filter((name) => names.has(name)),
+    ...[...names].filter((name) => !preferredOrder.includes(name)).sort(),
+  ]
+})
 const artists = computed(() => vtubers.value.filter((artist) => agencyFilter.value === 'all' || artist.agency === agencyFilter.value))
 const selectedArtist = computed(() => artists.value.find((artist) => artist.id === selectedArtistId.value) ?? null)
 const archives = useQuery({
@@ -266,8 +277,8 @@ function hideBrokenImage(event: Event): void {
     </div>
     <div v-if="!selectedArtist && topTab === 'artists'" class="agency-filter youtube-agency-filter" aria-label="VTuber 소속 선택">
       <UButton :class="{ active: agencyFilter === 'all' }" @click="agencyFilter = 'all'">전체</UButton>
-      <UButton v-for="agency in agenciesQuery.data.value || []" :key="agency.id" :class="{ active: agencyFilter === agency.name }" @click="agencyFilter = agency.name">
-        {{ agency.name === 'KAMITSUBAKI STUDIO' ? 'KAMITSUBAKI' : agency.name }}
+      <UButton v-for="agency in agencyNames" :key="agency" :class="{ active: agencyFilter === agency }" @click="agencyFilter = agency">
+        {{ agency === 'KAMITSUBAKI STUDIO' ? 'KAMITSUBAKI' : agency }}
       </UButton>
     </div>
 
