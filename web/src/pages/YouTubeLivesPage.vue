@@ -487,3 +487,17 @@ function hideBrokenImage(event: Event): void {
 .live-detail .video-player{height:min(48vh,560px);min-height:320px;margin:0;aspect-ratio:auto}.live-detail .setlist-list{max-height:none;overflow:visible;padding:0 12px;border:0;border-radius:0;background:transparent}.setlist-scroll{max-height:26vh;overflow-y:auto;border:1px solid rgba(50,214,255,.2);border-radius:9px;background:linear-gradient(90deg,rgba(50,214,255,.035),rgba(255,255,255,.015));scrollbar-color:#30c7e8 rgba(50,214,255,.05);scrollbar-width:thin}.setlist-scroll::-webkit-scrollbar{width:10px}.setlist-scroll::-webkit-scrollbar-track{margin:7px 2px;border-radius:999px;background:rgba(50,214,255,.05)}.setlist-scroll::-webkit-scrollbar-thumb{border:2px solid #111927;border-radius:999px;background:linear-gradient(#6be6ff,#2baed4)}.setlist-scroll::-webkit-scrollbar-thumb:hover{background:linear-gradient(#a2f1ff,#40c8eb)}:global(.modal.modal--youtube-detail){overflow:hidden}@media(max-width:700px){.live-detail .video-player{height:auto;min-height:0;aspect-ratio:16/9}.setlist-scroll{max-height:30vh}.live-detail .setlist-list{padding:0 8px}}
 .song-stats__title{display:grid;gap:4px;min-width:0;padding:0;border:0;color:inherit;background:transparent;text-align:left;cursor:pointer}.song-stats__title:hover strong{color:var(--cyan)}.song-stats__title small,.song-history__artist{color:#718096;font-size:11px}.song-history{display:grid;gap:14px}.song-history__artist{margin:0}.song-history__list{display:grid;gap:7px;padding:0;margin:0;list-style:none}.song-history__list li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}.song-history__list span{display:grid;gap:4px;min-width:0}.song-history__list small{overflow:hidden;color:#718096;text-overflow:ellipsis;white-space:nowrap}.song-history__list .button{flex:0 0 auto}
 </style>
+
+<style scoped>
+@media (max-width: 600px) {
+  .section-heading, .archive-heading, .archive-actions { flex-wrap: wrap; gap: 12px; }
+  .artist-selector--grid .artist-select-card { min-width: 0; min-height: 175px; padding: 12px; }
+  .artist-selector--grid .artist-select-card > .artist-image { width: min(80px, 100%); height: auto; aspect-ratio: 1; }
+  .youtube-artist-hero { padding: 14px; gap: 12px; }
+  .youtube-artist-hero h1 { font-size: 24px; }
+  .archive-row { grid-template-columns: 90px minmax(0, 1fr); }
+  .archive-meta { min-width: 0; padding: 10px; }
+  .setlist-list li { grid-template-columns: 3rem minmax(0, 1fr); gap: 10px; }
+  .floating-register { bottom: max(18px, env(safe-area-inset-bottom)); }
+}
+</style>
