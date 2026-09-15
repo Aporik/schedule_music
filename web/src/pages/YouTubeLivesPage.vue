@@ -489,6 +489,11 @@ function hideBrokenImage(event: Event): void {
 </style>
 
 <style scoped>
+.artist-select-card { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 8px; }
+.artist-select-card > .artist-image { flex: none; margin: 0 auto 4px; }
+.artist-select-card strong { max-width: 100%; white-space: normal; overflow-wrap: anywhere; line-height: 1.4; }
+.artist-select-card small { white-space: nowrap; margin-top: 0; }
+.archive-card { display: block; }
 @media (max-width: 600px) {
   .section-heading, .archive-heading, .archive-actions { flex-wrap: wrap; gap: 12px; }
   .artist-selector--grid .artist-select-card { min-width: 0; min-height: 175px; padding: 12px; }

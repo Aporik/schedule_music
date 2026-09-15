@@ -4,11 +4,14 @@
 .app-topbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 8px 24px; border-bottom: 1px solid var(--line); background: var(--bg); }
 .menu-toggle { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 44px; height: 44px; color: var(--cyan); }
 .app-topbar__brand { font-size: 12px; font-weight: 700; letter-spacing: .12em; }
-.mobile-sidebar { width: min(320px, calc(100vw - 32px)); background: var(--bg); }
+.mobile-sidebar-overlay { z-index: 99; background: rgba(0, 0, 0, .6); }
+.mobile-sidebar { z-index: 100; width: min(320px, calc(100vw - 32px)); background: var(--bg); }
+.mobile-sidebar__close { position: absolute; top: 12px; right: 12px; }
 .mobile-sidebar__body { display: flex; flex-direction: column; padding: 20px 16px max(20px, env(safe-area-inset-bottom)); overflow-y: auto; }
 .mobile-sidebar__body nav { display: grid; gap: 6px; }
 .page, .page-header > *, .panel, .form-grid > *, .artist-row > *, .profile-hero > *, .album-detail__hero > * { min-width: 0; }
 .page { overflow-wrap: anywhere; }
+.artist-card, .release-card { display: block; }
 .page-header__actions, .form-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .filter-tabs { min-width: 0; max-width: 100%; overflow-x: auto; }
 .filter-tabs button { flex-shrink: 0; }

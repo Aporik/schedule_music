@@ -37,7 +37,7 @@ watch(() => route.fullPath, () => ui.closeSidebar())
             title="주요 메뉴"
             description="Schedule Music 페이지 탐색"
             :close="{ 'aria-label': '메뉴 닫기' }"
-            :ui="{ content: 'mobile-sidebar', body: 'mobile-sidebar__body' }"
+            :ui="{ overlay: 'mobile-sidebar-overlay', content: 'mobile-sidebar', body: 'mobile-sidebar__body' }"
             @update:open="ui.setSidebarOpen"
           >
             <UButton class="menu-toggle" aria-label="메뉴 열기" color="neutral" variant="ghost">
@@ -45,6 +45,11 @@ watch(() => route.fullPath, () => ui.closeSidebar())
             </UButton>
             <template #body>
               <AppSidebarContent close-on-navigate @navigate="ui.closeSidebar" />
+            </template>
+            <template #close>
+              <UButton class="mobile-sidebar__close menu-toggle" aria-label="메뉴 닫기" color="neutral" variant="ghost">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6" /></svg>
+              </UButton>
             </template>
           </USlideover>
           <UButton

@@ -97,6 +97,9 @@ function artistImage(artist: Artist): string | undefined {
 </style>
 
 <style scoped>
+.lyrics-artist-card { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; }
+.lyrics-artist-card > span { flex: none; }
+.lyrics-artist-card strong { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
 @media (max-width: 600px) {
   .lyrics-artist-card { min-width: 0; min-height: 175px; padding: 12px; }
   .lyrics-artist-card > span { width: min(80px, 100%); height: auto; aspect-ratio: 1; }
