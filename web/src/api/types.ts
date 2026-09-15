@@ -72,6 +72,8 @@ export interface Source {
 }
 
 export interface Artist {
+  related_artist_ids?: number[]
+  name_aliases?: string[]
   id: number
   name: string
   display_name: string | null
@@ -137,6 +139,7 @@ export interface EventCandidate {
 export type EventCandidateCreate = Omit<EventCandidate, 'id' | 'created_at' | 'updated_at'>
 
 export interface SpotifyArtist {
+  related_artist_ids?: number[]
   local_artist_id: number
   local_name: string
   artist_kind: ArtistKind

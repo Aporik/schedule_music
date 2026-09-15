@@ -37,7 +37,8 @@ const form = reactive({
 })
 
 const artistMap = computed(() => new Map(
-  (artistsQuery.data.value ?? []).map((artist) => [artist.id, artist.display_name || artist.name]),
+  (artistsQuery.data.value ?? []).flatMap((artist) =>
+    (artist.related_artist_ids ?? [artist.id]).map((id) => [id, artist.display_name || artist.name] as const)),
 ))
 const artistFilterOptions = computed(() => [
   { label: '전체 아티스트', value: '' },

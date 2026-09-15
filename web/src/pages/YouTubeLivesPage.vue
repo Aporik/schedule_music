@@ -72,7 +72,7 @@ const agencyNames = computed(() => {
   ]
 })
 const artists = computed(() => vtubers.value.filter((artist) => agencyFilter.value === 'all' || artist.agency === agencyFilter.value))
-const selectedArtist = computed(() => artists.value.find((artist) => artist.id === selectedArtistId.value) ?? null)
+const selectedArtist = computed(() => artists.value.find((artist) => artist.id === selectedArtistId.value || artist.related_artist_ids?.includes(selectedArtistId.value ?? -1)) ?? null)
 const archives = useQuery({
   queryKey: computed(() => ['youtube-lives', selectedArtist.value?.name ?? '']),
   queryFn: () => api.youtubeLives.list(selectedArtist.value?.name),
@@ -128,7 +128,7 @@ const updatePerformance = useMutation({
 })
 
 function artistNameMatches(artist: Artist, name: string): boolean {
-  return [artist.name, artist.display_name].filter(Boolean).some((value) => value?.toLowerCase() === name.toLowerCase())
+  return [artist.name, artist.display_name, ...(artist.name_aliases ?? [])].filter(Boolean).some((value) => value?.toLowerCase() === name.toLowerCase())
 }
 function selectArtist(artist: Artist): void {
   router.push(`/youtube-lives/artists/${artist.id}`)

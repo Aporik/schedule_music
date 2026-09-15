@@ -78,7 +78,8 @@ export const api = {
       request<SongLyricsSummary>(`/songs/${songId}/credits`, { method: 'PATCH', body: JSON.stringify(payload) }),
   },
   artists: {
-    list: () => request<Artist[]>('/artists'),
+    list: () => request<Artist[]>('/artists?grouped=true'),
+    registrations: () => request<Artist[]>('/artists'),
     create: (payload: ArtistCreate) =>
       request<Artist>('/artists', { method: 'POST', body: JSON.stringify(payload) }),
     update: (id: number, payload: Partial<ArtistCreate>) =>
