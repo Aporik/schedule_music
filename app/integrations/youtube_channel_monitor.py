@@ -241,7 +241,7 @@ async def _fetch_recent_cover_videos(
         for index in range(0, len(candidates), 50):
             response = await client.get(
                 f"{YOUTUBE_API_BASE_URL}/videos",
-                params={"part": "snippet", "id": ",".join(candidates[index:index + 50]), "key": settings.youtube_api_key},
+                params={"part": "snippet,liveStreamingDetails", "id": ",".join(candidates[index:index + 50]), "key": settings.youtube_api_key},
             )
             response.raise_for_status()
             items.extend(response.json().get("items") or [])
@@ -250,7 +250,9 @@ async def _fetch_recent_cover_videos(
         snippet = item.get("snippet") or {}
         title = snippet.get("title") or ""
         description = snippet.get("description") or ""
-        if _is_cover_video(title, description):
+        # A singing live archive can contain cover keywords in its description,
+        # but this catalogue is intentionally only for normal video uploads.
+        if not (item.get("liveStreamingDetails") or {}).get("actualStartTime") and _is_cover_video(title, description):
             covers.append({
                 "youtube_video_id": item["id"], "video_title": title,
                 "video_description": description,
