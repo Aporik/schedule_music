@@ -13,6 +13,7 @@ from app.integrations.youtube_live_archive import (
     list_youtube_performance_filters,
     search_youtube_song_performances,
     update_youtube_song_performance,
+    list_youtube_performance_stats,
 )
 
 
@@ -45,6 +46,9 @@ class YouTubeService:
     def list_performance_filters(self) -> dict[str, list[str]]:
         """공연 검색 필터 후보를 반환한다."""
         return list_youtube_performance_filters()
+
+    def list_performance_stats(self, group_by: str) -> list[dict[str, Any]]:
+        return list_youtube_performance_stats(group_by)
 
     def update_performance(self, performance_id: int, values: dict[str, str | None]) -> dict[str, Any] | None:
         """공연 곡 정보를 수정한다."""

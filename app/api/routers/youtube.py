@@ -73,6 +73,13 @@ def get_youtube_performance_filters(service: Service) -> dict[str, list[str]]:
     return service.list_performance_filters()
 
 
+@router.get("/youtube-performance-stats")
+def get_youtube_performance_stats(service: Service, group_by: str = "song") -> list[dict]:
+    if group_by not in {"song", "original_artist"}:
+        raise HTTPException(status_code=400, detail="group_by must be song or original_artist")
+    return service.list_performance_stats(group_by)
+
+
 @router.patch("/youtube-performances/{performance_id}")
 def patch_youtube_performance(performance_id: int, payload: YouTubePerformanceUpdate, service: Service) -> dict:
     """공연 곡 정보를 수정한다."""

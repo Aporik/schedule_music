@@ -562,8 +562,6 @@ def search_youtube_song_performances(
                                            for alias in artist_name_aliases(value.strip())))
     song_patterns = [f"%{value.strip()}%" for value in song_titles or [] if value.strip()]
     original_artist_patterns = [f"%{value.strip()}%" for value in original_artists or [] if value.strip()]
-    if not song_patterns:
-        raise ValueError("song_title is required.")
 
     with get_connection() as conn:
         return conn.execute(
@@ -609,6 +607,15 @@ def search_youtube_song_performances(
                 max(1, min(limit, 500)),
             ),
         ).fetchall()
+
+
+def list_youtube_performance_stats(group_by: str, limit: int = 200) -> list[dict[str, Any]]:
+    field = "COALESCE(NULLIF(p.song_title_ko, ''), p.song_title)" if group_by == "song" else "COALESCE(NULLIF(p.original_artist_ko, ''), p.original_artist)"
+    with get_connection() as conn:
+        return conn.execute(f"""SELECT {field} AS label, COUNT(*)::integer AS count
+            FROM youtube_song_performances p JOIN youtube_live_archives y ON y.id = p.archive_id
+            WHERE {field} IS NOT NULL AND {field} <> '' AND (y.duration_seconds IS NULL OR y.duration_seconds > 420)
+            GROUP BY {field} ORDER BY count DESC, label LIMIT %s""", (max(1, min(limit, 500)),)).fetchall()
 
 
 def list_youtube_performance_filters(limit: int = 500) -> dict[str, list[str]]:

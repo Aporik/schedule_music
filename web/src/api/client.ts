@@ -132,6 +132,7 @@ export const api = {
     },
   },
   youtubePerformances: {
+    stats: (groupBy: 'song' | 'original_artist') => request<Array<{ label: string; count: number }>>(`/youtube-performance-stats?group_by=${groupBy}`),
     filters: () => request<YouTubePerformanceFilters>('/youtube-performance-filters'),
     search: (filters: { artists: string[]; songs: string[]; originalArtists: string[] }) => {
       const params = new URLSearchParams({ limit: '500' })
