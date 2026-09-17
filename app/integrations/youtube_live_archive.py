@@ -610,9 +610,10 @@ def search_youtube_song_performances(
 
 
 def list_youtube_performance_stats(group_by: str, limit: int = 200) -> list[dict[str, Any]]:
-    field = "COALESCE(NULLIF(p.song_title_ko, ''), p.song_title)" if group_by == "song" else "COALESCE(NULLIF(p.original_artist_ko, ''), p.original_artist)"
+    field = "p.song_title" if group_by == "song" else "p.original_artist"
+    korean = "MAX(NULLIF(p.song_title_ko, ''))" if group_by == "song" else "MAX(NULLIF(p.original_artist_ko, ''))"
     with get_connection() as conn:
-        return conn.execute(f"""SELECT {field} AS label, COUNT(*)::integer AS count
+        return conn.execute(f"""SELECT {field} AS label, {korean} AS korean_label, COUNT(*)::integer AS count
             FROM youtube_song_performances p JOIN youtube_live_archives y ON y.id = p.archive_id
             WHERE {field} IS NOT NULL AND {field} <> '' AND (y.duration_seconds IS NULL OR y.duration_seconds > 420)
             GROUP BY {field} ORDER BY count DESC, label LIMIT %s""", (max(1, min(limit, 500)),)).fetchall()
