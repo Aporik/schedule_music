@@ -2,6 +2,8 @@
 
 from typing import Any
 
+from app.core.db import get_connection
+
 from app.integrations.youtube_channel_monitor import backfill_youtube_channel
 from app.integrations.youtube_live_archive import (
     add_youtube_live_url,
@@ -47,3 +49,20 @@ class YouTubeService:
     def update_performance(self, performance_id: int, values: dict[str, str | None]) -> dict[str, Any] | None:
         """공연 곡 정보를 수정한다."""
         return update_youtube_song_performance(performance_id, values)
+
+    def list_covers(self, artist_id: int | None = None, limit: int = 500) -> list[dict[str, Any]]:
+        """List collected official-channel cover uploads, newest first."""
+        with get_connection() as conn:
+            return conn.execute(
+                """
+                SELECT c.id, c.artist_id, COALESCE(a.display_name, a.name) AS artist_name,
+                       c.youtube_video_id, c.youtube_url, c.video_title, c.video_description,
+                       c.published_at
+                FROM youtube_cover_videos c
+                JOIN artists a ON a.id = c.artist_id
+                WHERE (%s::integer IS NULL OR c.artist_id = %s)
+                ORDER BY c.published_at DESC NULLS LAST, c.id DESC
+                LIMIT %s
+                """,
+                (artist_id, artist_id, max(1, min(limit, 1000))),
+            ).fetchall()

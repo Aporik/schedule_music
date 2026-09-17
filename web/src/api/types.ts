@@ -227,3 +227,14 @@ export interface YouTubeLiveArchive {
   setlist: Array<{ timestamp: string; title: string }>; performances?: YouTubePerformance[]
   last_checked_at: string | null
 }
+
+export interface YouTubeCoverVideo {
+  id: number
+  artist_id: number
+  artist_name: string
+  youtube_video_id: string
+  youtube_url: string
+  video_title: string
+  video_description: string | null
+  published_at: string | null
+}

@@ -69,6 +69,7 @@ async def run_agent_once() -> dict[str, int]:
         "youtube_live_archives_updated": 0,
         "youtube_channels_checked": 0,
         "youtube_channel_archives_created": 0,
+        "youtube_covers_saved": 0,
     }
     if not rows or not x_configured():
         result["youtube_live_archives_updated"] = (
@@ -77,6 +78,7 @@ async def run_agent_once() -> dict[str, int]:
         channel_result = await _poll_youtube_channels_safely()
         result["youtube_channels_checked"] = channel_result["channels_checked"]
         result["youtube_channel_archives_created"] = channel_result["archives_created"]
+        result["youtube_covers_saved"] = channel_result.get("covers_saved", 0)
         return result
 
     for source in rows:
@@ -93,6 +95,7 @@ async def run_agent_once() -> dict[str, int]:
     channel_result = await _poll_youtube_channels_safely()
     result["youtube_channels_checked"] = channel_result["channels_checked"]
     result["youtube_channel_archives_created"] = channel_result["archives_created"]
+    result["youtube_covers_saved"] = channel_result.get("covers_saved", 0)
     return result
 
 
@@ -101,7 +104,7 @@ async def _poll_youtube_channels_safely() -> dict[str, int]:
         return await poll_youtube_channel_monitors()
     except Exception:
         logger.exception("YouTube channel monitor polling failed.")
-        return {"channels_checked": 0, "videos_found": 0, "archives_created": 0}
+        return {"channels_checked": 0, "videos_found": 0, "archives_created": 0, "covers_saved": 0}
 
 
 async def _process_x_source(source: dict[str, Any]) -> dict[str, int]:

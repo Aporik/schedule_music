@@ -523,6 +523,27 @@ def init_db() -> None:
         )
         conn.execute(
             """
+            CREATE TABLE IF NOT EXISTS youtube_cover_videos (
+                id SERIAL PRIMARY KEY,
+                artist_id INTEGER NOT NULL,
+                youtube_video_id TEXT NOT NULL,
+                youtube_url TEXT NOT NULL,
+                video_title TEXT NOT NULL,
+                video_description TEXT,
+                published_at TIMESTAMPTZ,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE CASCADE,
+                UNIQUE (artist_id, youtube_video_id)
+            )
+            """
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS youtube_cover_videos_artist_date_idx "
+            "ON youtube_cover_videos (artist_id, published_at DESC)"
+        )
+        conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS karaoke_source_matches (
                 id SERIAL PRIMARY KEY,
                 song_title TEXT NOT NULL,

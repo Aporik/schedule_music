@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from app.api.dependencies import get_youtube_service
 from app.core.models import YouTubePerformanceUpdate
 from app.core.security import require_api_key
-from app.schemas.youtube import YouTubeChannelBackfillCreate, YouTubeLiveCreate
+from app.schemas.youtube import YouTubeChannelBackfillCreate, YouTubeCoverVideo, YouTubeLiveCreate
 from app.services.youtube_service import YouTubeService
 
 router = APIRouter(tags=["youtube"], dependencies=[Depends(require_api_key)])
@@ -41,6 +41,12 @@ async def create_youtube_live_backfill(payload: YouTubeChannelBackfillCreate, se
 def get_youtube_lives(service: Service, limit: int = 50, artist_name: str | None = None, all_records: bool = False) -> list[dict]:
     """저장된 YouTube 라이브를 조회한다."""
     return service.list_lives(limit, artist_name, all_records=all_records)
+
+
+@router.get("/youtube-covers", response_model=list[YouTubeCoverVideo])
+def get_youtube_covers(service: Service, artist_id: int | None = None, limit: int = 500) -> list[dict]:
+    """Return cover uploads collected from registered artists' official channels."""
+    return service.list_covers(artist_id=artist_id, limit=limit)
 
 
 @router.get("/youtube-lives/{archive_id}")

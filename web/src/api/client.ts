@@ -123,6 +123,13 @@ export const api = {
       method: 'POST', body: JSON.stringify({ youtube_url: youtubeUrl, artist_name: artistName }),
     }),
   },
+  youtubeCovers: {
+    list: (artistId?: number, limit = 500) => {
+      const params = new URLSearchParams({ limit: String(limit) })
+      if (artistId) params.set('artist_id', String(artistId))
+      return request<import('./types').YouTubeCoverVideo[]>(`/youtube-covers?${params.toString()}`)
+    },
+  },
   youtubePerformances: {
     filters: () => request<YouTubePerformanceFilters>('/youtube-performance-filters'),
     search: (filters: { artists: string[]; songs: string[]; originalArtists: string[] }) => {
