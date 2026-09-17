@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 import httpx
 
 from app.core.config import settings
+from app.core.artist_identity import artist_name_aliases
 from app.core.db import RIOT_MUSIC_YOUTUBE_CHANNELS, get_connection
 from app.integrations.youtube_context import YOUTUBE_API_BASE_URL
 from app.integrations.youtube_live_archive import add_youtube_live_url
@@ -270,7 +271,7 @@ def _upsert_cover_videos(artist_name: str, covers: list[dict[str, Any]]) -> int:
         if artist is None:
             return 0
         for cover in covers:
-            conn.execute(
+            row = conn.execute(
                 """
                 INSERT INTO youtube_cover_videos (
                     artist_id, youtube_video_id, youtube_url, video_title, video_description, published_at
@@ -284,6 +285,14 @@ def _upsert_cover_videos(artist_name: str, covers: list[dict[str, Any]]) -> int:
                 (artist["id"], cover["youtube_video_id"], f"https://www.youtube.com/watch?v={cover['youtube_video_id']}",
                  cover["video_title"], cover["video_description"], cover["published_at"]),
             )
+            cover_row = conn.execute("SELECT id FROM youtube_cover_videos WHERE artist_id = %s AND youtube_video_id = %s", (artist["id"], cover["youtube_video_id"])).fetchone()
+            conn.execute("DELETE FROM youtube_cover_collaborators WHERE cover_id = %s", (cover_row["id"],))
+            text = f"{cover['video_title']}\n{cover['video_description']}".casefold()
+            candidates = conn.execute("SELECT id, name, display_name FROM artists WHERE id <> %s", (artist["id"],)).fetchall()
+            for candidate in candidates:
+                aliases = artist_name_aliases(candidate["name"]) + ([candidate["display_name"]] if candidate["display_name"] else [])
+                if any(alias and len(alias) >= 3 and alias.casefold() in text for alias in aliases):
+                    conn.execute("INSERT INTO youtube_cover_collaborators (cover_id, artist_id) VALUES (%s, %s) ON CONFLICT DO NOTHING", (cover_row["id"], candidate["id"]))
         conn.commit()
     return len(covers)
 

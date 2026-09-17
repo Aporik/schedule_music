@@ -237,4 +237,5 @@ export interface YouTubeCoverVideo {
   video_title: string
   video_description: string | null
   published_at: string | null
+  collaborators: Array<{ id: number; name: string }>
 }

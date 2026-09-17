@@ -1,90 +1,16 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
+import { useRoute, useRouter } from 'vue-router'
 import { api } from '@/api/client'
 import type { Artist, YouTubeCoverVideo } from '@/api/types'
+import AppModal from '@/components/AppModal.vue'
 import PageHeader from '@/components/PageHeader.vue'
-
-const selectedArtistId = ref<number | null>(null)
-const query = ref('')
-const artistsQuery = useQuery({ queryKey: ['artists'], queryFn: api.artists.list })
-const coversQuery = useQuery({
-  queryKey: computed(() => ['youtube-covers', selectedArtistId.value]),
-  queryFn: () => api.youtubeCovers.list(selectedArtistId.value ?? undefined),
-})
-
-const artists = computed(() => artistsQuery.data.value ?? [])
-const selectedArtist = computed(() => artists.value.find((artist) => artist.id === selectedArtistId.value) ?? null)
-const covers = computed(() => {
-  const needle = query.value.trim().toLocaleLowerCase()
-  return (coversQuery.data.value ?? []).filter((cover) => !needle || [cover.video_title, cover.artist_name]
-    .some((value) => value.toLocaleLowerCase().includes(needle)))
-})
-
-function chooseArtist(artist: Artist | null): void {
-  selectedArtistId.value = artist?.id ?? null
-}
-function thumbnail(cover: YouTubeCoverVideo): string {
-  return `https://i.ytimg.com/vi/${encodeURIComponent(cover.youtube_video_id)}/hqdefault.jpg`
-}
-function displayDate(value: string | null): string {
-  if (!value) return '날짜 미확인'
-  return new Intl.DateTimeFormat('ko-KR', { dateStyle: 'long' }).format(new Date(value))
-}
+const route=useRoute(); const router=useRouter(); const tab=ref<'list'|'search'>('list'); const mode=ref<'all'|'collab'>('all'); const search=ref(''); const peopleOpen=ref(false); const selectedPeople=ref<YouTubeCoverVideo['collaborators']>([])
+const artistId=computed(()=>Number(route.params.artistId)||null); const collaboratorId=computed(()=>Number(route.query.collaborator)||null)
+const artistsQ=useQuery({queryKey:['artists'],queryFn:api.artists.list}); const coversQ=useQuery({queryKey:computed(()=>['covers',artistId.value,collaboratorId.value]),queryFn:()=>api.youtubeCovers.list(artistId.value??undefined, collaboratorId.value??undefined)})
+const agencies=['RK Music','KAMITSUBAKI STUDIO','RIOT MUSIC']; const agency=ref(agencies[0]); const artists=computed(()=> (artistsQ.data.value??[]).filter(a=>a.agency===agency.value)); const current=computed(()=> (artistsQ.data.value??[]).find(a=>a.id===artistId.value)); const covers=computed(()=> (coversQ.data.value??[]).filter(c=>(mode.value==='all'||c.collaborators.length)&&(!search.value||`${c.video_title} ${c.artist_name}`.toLowerCase().includes(search.value.toLowerCase()))));
+function avatar(a:Artist){const source=a.sources.find(s=>s.source_type==='x'); const handle=source?.value.replace(/^@/,''); return a.spotify_image_url||(handle?`https://unavatar.io/x/${encodeURIComponent(handle)}`:'')} function openArtist(a:Artist){router.push(`/youtube-covers/artists/${a.id}`); tab.value='list'} function thumb(c:YouTubeCoverVideo){return `https://i.ytimg.com/vi/${c.youtube_video_id}/hqdefault.jpg`} function people(c:YouTubeCoverVideo){selectedPeople.value=c.collaborators;peopleOpen.value=true} function choose(p:{id:number}){peopleOpen.value=false;router.push({query:{collaborator:p.id}})} function clear(){router.push(`/youtube-covers/artists/${artistId.value}`)}
 </script>
-
-<template>
-  <div class="page">
-    <PageHeader
-      eyebrow="YOUTUBE ARCHIVE / COVERS"
-      title="YouTube 커버곡"
-      description="등록된 아티스트의 공식 채널에서 수집한 커버 영상을 한곳에서 확인합니다."
-    />
-
-    <section class="panel cover-browser">
-      <div class="cover-browser__filters">
-        <UButton class="button" :class="{ 'button--primary': !selectedArtist }" @click="chooseArtist(null)">전체 아티스트</UButton>
-        <UButton v-for="artist in artists" :key="artist.id" class="button" :class="{ 'button--primary': artist.id === selectedArtistId }" @click="chooseArtist(artist)">
-          {{ artist.display_name || artist.name }}
-        </UButton>
-      </div>
-      <label class="cover-browser__search">
-        <span class="sr-only">커버곡 검색</span>
-        <UInput v-model="query" placeholder="곡명 또는 아티스트 검색" />
-      </label>
-    </section>
-
-    <div v-if="coversQuery.isPending.value" class="skeleton-list"><i /><i /><i /></div>
-    <div v-else-if="coversQuery.isError.value" class="empty-state">
-      <strong>커버곡 목록을 불러오지 못했습니다.</strong>
-      <p>API 연결 상태를 확인한 뒤 다시 시도해주세요.</p>
-    </div>
-    <div v-else-if="covers.length" class="cover-grid">
-      <a v-for="cover in covers" :key="cover.id" class="cover-card" :href="cover.youtube_url" target="_blank" rel="noreferrer">
-        <img :src="thumbnail(cover)" :alt="`${cover.video_title} 썸네일`" loading="lazy" />
-        <div class="cover-card__body">
-          <span>{{ cover.artist_name }}</span>
-          <h2>{{ cover.video_title }}</h2>
-          <p>{{ displayDate(cover.published_at) }}</p>
-        </div>
-      </a>
-    </div>
-    <div v-else class="empty-state">
-      <strong>{{ selectedArtist ? `${selectedArtist.display_name || selectedArtist.name}의 커버곡이 아직 없습니다.` : '수집된 커버곡이 아직 없습니다.' }}</strong>
-      <p>등록된 YouTube 채널을 수집하면 제목 또는 설명에 Cover·歌ってみた·カバー가 포함된 영상부터 표시됩니다.</p>
-    </div>
-  </div>
-</template>
-
-<style scoped>
-.cover-browser { display: flex; gap: 1rem; align-items: flex-start; justify-content: space-between; margin-bottom: 1.5rem; }
-.cover-browser__filters { display: flex; flex: 1; flex-wrap: wrap; gap: .5rem; }
-.cover-browser__search { min-width: min(100%, 17rem); }
-.cover-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 1rem; }
-.cover-card { color: inherit; text-decoration: none; overflow: hidden; border: 1px solid var(--line); background: var(--panel); }
-.cover-card img { width: 100%; aspect-ratio: 16 / 9; display: block; object-fit: cover; }
-.cover-card__body { padding: .875rem; }
-.cover-card__body span, .cover-card__body p { color: var(--muted); font-size: .82rem; }
-.cover-card__body h2 { margin: .4rem 0; font-size: 1rem; line-height: 1.45; }
-@media (max-width: 680px) { .cover-browser { flex-direction: column; } .cover-browser__search { width: 100%; } }
-</style>
+<template><div class="page"><PageHeader eyebrow="YOUTUBE ARCHIVE / COVERS" title="YouTube 커버곡" description="공식 채널의 커버 영상과 함께 부른 아티스트를 확인합니다."/><div class="nav-pills"><UButton :class="{active:tab==='list'}" @click="tab='list'">리스트</UButton><UButton :class="{active:tab==='search'}" @click="tab='search'">검색</UButton></div><template v-if="tab==='list'&&!artistId"><div class="agency-pills"><UButton v-for="x in agencies" :key="x" :class="{active:agency===x}" @click="agency=x">{{x}}</UButton></div><div class="artist-grid"><button v-for="a in artists" :key="a.id" class="artist-card" @click="openArtist(a)"><img v-if="avatar(a)" :src="avatar(a)" :alt="a.name"><b v-else>{{a.name.slice(0,1)}}</b><span>{{a.display_name||a.name}}</span></button></div></template><template v-else><div class="cover-tools"><UButton @click="router.push('/youtube-covers')">아티스트 목록</UButton><template v-if="current"><strong>{{current.display_name||current.name}}</strong><UButton :class="{active:mode==='all'}" @click="mode='all'">전체</UButton><UButton :class="{active:mode==='collab'}" @click="mode='collab'">콜라보</UButton><UButton v-if="collaboratorId" @click="clear">참여자 필터 해제</UButton></template><UInput v-model="search" :placeholder="tab==='search'?'노래 제목 또는 가수 이름 검색':'이 아티스트의 커버 검색'"/></div><div v-if="coversQ.isPending.value" class="skeleton-list"><i/><i/><i/></div><div v-else class="cover-grid"><article v-for="c in covers" :key="c.id" class="cover-card"><a :href="c.youtube_url" target="_blank"><img :src="thumb(c)" :alt="c.video_title"></a><div><span>{{c.artist_name}}</span><h2>{{c.video_title}}</h2><UButton v-if="c.collaborators.length" @click="people(c)">콜라보 {{c.collaborators.length}}명</UButton></div></article></div><div v-if="!coversQ.isPending.value&&!covers.length" class="empty-state"><strong>표시할 커버곡이 없습니다.</strong></div></template><AppModal :open="peopleOpen" title="콜라보 참여 아티스트" description="선택하면 두 아티스트가 함께한 커버곡만 봅니다." @close="peopleOpen=false"><div class="people-list"><UButton v-for="p in selectedPeople" :key="p.id" @click="choose(p)">{{p.name}}</UButton></div></AppModal></div></template>
+<style scoped>.agency-pills,.cover-tools,.people-list{display:flex;gap:.6rem;flex-wrap:wrap;margin:1.2rem 0}.artist-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:1rem}.artist-card,.cover-card{border:1px solid var(--line);background:var(--panel);color:inherit;padding:.75rem}.artist-card img{width:72px;height:72px;border-radius:50%;object-fit:cover}.artist-card span{display:block;margin-top:.5rem}.cover-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1rem}.cover-card{padding:0}.cover-card img{width:100%;aspect-ratio:16/9;object-fit:cover}.cover-card div{padding:.8rem}.cover-card h2{font-size:1rem}.nav-pills{display:flex;gap:.5rem}</style>

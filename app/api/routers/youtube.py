@@ -44,9 +44,9 @@ def get_youtube_lives(service: Service, limit: int = 50, artist_name: str | None
 
 
 @router.get("/youtube-covers", response_model=list[YouTubeCoverVideo])
-def get_youtube_covers(service: Service, artist_id: int | None = None, limit: int = 500) -> list[dict]:
+def get_youtube_covers(service: Service, artist_id: int | None = None, collaborator_id: int | None = None, limit: int = 500) -> list[dict]:
     """Return cover uploads collected from registered artists' official channels."""
-    return service.list_covers(artist_id=artist_id, limit=limit)
+    return service.list_covers(artist_id=artist_id, collaborator_id=collaborator_id, limit=limit)
 
 
 @router.get("/youtube-lives/{archive_id}")

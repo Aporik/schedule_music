@@ -124,9 +124,10 @@ export const api = {
     }),
   },
   youtubeCovers: {
-    list: (artistId?: number, limit = 500) => {
+    list: (artistId?: number, collaboratorId?: number, limit = 500) => {
       const params = new URLSearchParams({ limit: String(limit) })
       if (artistId) params.set('artist_id', String(artistId))
+      if (collaboratorId) params.set('collaborator_id', String(collaboratorId))
       return request<import('./types').YouTubeCoverVideo[]>(`/youtube-covers?${params.toString()}`)
     },
   },

@@ -50,10 +50,10 @@ class YouTubeService:
         """공연 곡 정보를 수정한다."""
         return update_youtube_song_performance(performance_id, values)
 
-    def list_covers(self, artist_id: int | None = None, limit: int = 500) -> list[dict[str, Any]]:
+    def list_covers(self, artist_id: int | None = None, collaborator_id: int | None = None, limit: int = 500) -> list[dict[str, Any]]:
         """List collected official-channel cover uploads, newest first."""
         with get_connection() as conn:
-            return conn.execute(
+            rows = conn.execute(
                 """
                 SELECT c.id, c.artist_id, COALESCE(a.display_name, a.name) AS artist_name,
                        c.youtube_video_id, c.youtube_url, c.video_title, c.video_description,
@@ -61,8 +61,22 @@ class YouTubeService:
                 FROM youtube_cover_videos c
                 JOIN artists a ON a.id = c.artist_id
                 WHERE (%s::integer IS NULL OR c.artist_id = %s)
+                  AND (%s::integer IS NULL OR EXISTS (SELECT 1 FROM youtube_cover_collaborators cc WHERE cc.cover_id = c.id AND cc.artist_id = %s))
                 ORDER BY c.published_at DESC NULLS LAST, c.id DESC
                 LIMIT %s
                 """,
-                (artist_id, artist_id, max(1, min(limit, 1000))),
+                (artist_id, artist_id, collaborator_id, collaborator_id, max(1, min(limit, 1000))),
             ).fetchall()
+            if not rows:
+                return []
+            participants = conn.execute(
+                """SELECT cc.cover_id, a.id, COALESCE(a.display_name, a.name) AS name
+                   FROM youtube_cover_collaborators cc JOIN artists a ON a.id = cc.artist_id
+                   WHERE cc.cover_id = ANY(%s) ORDER BY a.name""",
+                ([row["id"] for row in rows],),
+            ).fetchall()
+            by_cover: dict[int, list[dict[str, Any]]] = {row["id"]: [] for row in rows}
+            for participant in participants:
+                by_cover[participant["cover_id"]].append({"id": participant["id"], "name": participant["name"]})
+            return [{**row, "collaborators": by_cover[row["id"]]} for row in rows]
+            

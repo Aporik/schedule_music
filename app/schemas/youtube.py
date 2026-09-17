@@ -28,3 +28,4 @@ class YouTubeCoverVideo(BaseModel):
     video_title: str
     video_description: str | None = None
     published_at: datetime | None = None
+    collaborators: list[dict[str, int | str]] = []
